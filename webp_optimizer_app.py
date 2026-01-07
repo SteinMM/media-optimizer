@@ -4,6 +4,8 @@ import tempfile
 import os
 from pathlib import Path
 import shutil
+from PIL import Image
+import io
 
 st.set_page_config(
     page_title="Media Optimizer",
@@ -12,13 +14,21 @@ st.set_page_config(
 )
 
 def check_cwebp():
-    """Check if cwebp is installed."""
+    """Check if cwebp is installed (or if Pillow can handle WebP)."""
+    # First try command-line tool (for local use)
     try:
         subprocess.run(['cwebp', '-version'], 
                       capture_output=True, check=True)
-        return True
+        return True, 'command_line'
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        # Fall back to Pillow (works on Streamlit Cloud)
+        try:
+            from PIL import Image
+            # Test if WebP is supported
+            Image.new('RGB', (1, 1)).save(io.BytesIO(), format='WEBP')
+            return True, 'pillow'
+        except:
+            return False, None
 
 def check_ffmpeg():
     """Check if ffmpeg is installed."""
@@ -30,24 +40,31 @@ def check_ffmpeg():
         return False
 
 def optimize_webp(input_path, output_path, quality=85, method=6):
-    """Optimize WebP image."""
+    """Optimize WebP image using Pillow (works on Streamlit Cloud)."""
     try:
-        cmd = [
-            'cwebp',
-            '-q', str(quality),
-            '-m', str(method),
-            '-pass', '10',
-            '-mt',
-            '-sharp_yuv',
-            '-f', '50',
-            '-strong',
-            str(input_path),
-            '-o', str(output_path)
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Use Pillow for WebP optimization (works everywhere)
+        with Image.open(input_path) as img:
+            # Convert RGBA to RGB if needed (WebP supports both)
+            if img.mode == 'RGBA':
+                # Keep alpha channel
+                pass
+            elif img.mode not in ('RGB', 'RGBA', 'L', 'LA'):
+                # Convert to RGB
+                img = img.convert('RGB')
+            
+            # Save as WebP with optimization
+            # Pillow's quality parameter maps to WebP quality (0-100)
+            # method parameter is not directly supported, but quality works well
+            img.save(
+                output_path,
+                'WEBP',
+                quality=quality,
+                method=6 if method > 0 else 0,  # Pillow method (0-6)
+                lossless=False
+            )
         return True, None
-    except subprocess.CalledProcessError as e:
-        return False, e.stderr if e.stderr else str(e)
+    except Exception as e:
+        return False, str(e)
 
 def optimize_video(input_path, output_path, crf=35, speed=4, fps=None):
     """Optimize WebM video."""
@@ -125,10 +142,11 @@ with tab1:
     st.markdown("Upload an image to optimize it for smaller file size without losing visual quality.")
     st.markdown("**Supports:** WebP, PNG, JPG, JPEG → Optimized WebP output")
     
-    # Check if cwebp is installed
-    if not check_cwebp():
-        st.error("⚠️ cwebp is not installed. Please install it first:")
-        st.code("brew install webp", language="bash")
+    # Check if WebP optimization is available
+    webp_available, method = check_cwebp()
+    if not webp_available:
+        st.error("⚠️ WebP support is not available. Please install Pillow:")
+        st.code("pip install Pillow", language="bash")
     else:
         # Sidebar for image settings
         with st.sidebar:
