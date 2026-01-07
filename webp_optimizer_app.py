@@ -32,12 +32,27 @@ def check_cwebp():
 
 def check_ffmpeg():
     """Check if ffmpeg is installed."""
-    try:
-        subprocess.run(['ffmpeg', '-version'], 
-                      capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+    # Try common locations and PATH
+    possible_paths = [
+        'ffmpeg',
+        '/usr/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        '/opt/homebrew/bin/ffmpeg',
+    ]
+    
+    for ffmpeg_path in possible_paths:
+        try:
+            result = subprocess.run(
+                [ffmpeg_path, '-version'], 
+                capture_output=True, 
+                check=True,
+                timeout=5
+            )
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+    
+    return False
 
 def optimize_webp(input_path, output_path, quality=85, method=6):
     """Optimize WebP image using Pillow (works on Streamlit Cloud)."""
@@ -277,26 +292,25 @@ with tab2:
     # Check if ffmpeg is installed
     ffmpeg_available = check_ffmpeg()
     if not ffmpeg_available:
-        st.warning("⚠️ **Video optimization is not available on this platform.**")
+        st.warning("⚠️ **Video optimization requires ffmpeg**")
         st.info("""
-        **Why?** Video optimization requires `ffmpeg`, which is not available on Streamlit Cloud.
+        **Status:** ffmpeg is being installed via `packages.txt`. If you just deployed, please wait a moment and refresh the page.
         
-        **Solutions:**
+        **If ffmpeg is still not available:**
         - ✅ **Image optimization** works perfectly - use the Image Optimizer tab!
         - 💻 **For video optimization:** Run the app locally on your Mac/Windows machine
-        - 🌐 **Alternative:** Use online video compression tools
+        - 🔄 **Try refreshing** this page after deployment completes
         
         **To use video optimization locally:**
         1. Install ffmpeg: `brew install ffmpeg` (Mac) or download from ffmpeg.org (Windows)
         2. Run the app locally using the launcher scripts
         """)
+        
+        # Allow upload but show warning
         st.markdown("---")
-        st.markdown("### 📥 Download for Local Use")
-        st.markdown("""
-        You can download the app and run it locally on your computer where ffmpeg is installed.
-        Check the README.md file in the repository for local setup instructions.
-        """)
+        st.info("💡 **Note:** You can still upload videos, but optimization will fail until ffmpeg is available.")
     else:
+        st.success("✅ Video optimization is available!")
         # Sidebar for video settings
         with st.sidebar:
             st.header("⚙️ Video Settings")
