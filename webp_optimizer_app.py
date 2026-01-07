@@ -275,9 +275,27 @@ with tab2:
     st.markdown("**Supports:** WebM, MP4, MOV → Optimized WebM output")
     
     # Check if ffmpeg is installed
-    if not check_ffmpeg():
-        st.error("⚠️ ffmpeg is not installed. Please install it first:")
-        st.code("brew install ffmpeg", language="bash")
+    ffmpeg_available = check_ffmpeg()
+    if not ffmpeg_available:
+        st.warning("⚠️ **Video optimization is not available on this platform.**")
+        st.info("""
+        **Why?** Video optimization requires `ffmpeg`, which is not available on Streamlit Cloud.
+        
+        **Solutions:**
+        - ✅ **Image optimization** works perfectly - use the Image Optimizer tab!
+        - 💻 **For video optimization:** Run the app locally on your Mac/Windows machine
+        - 🌐 **Alternative:** Use online video compression tools
+        
+        **To use video optimization locally:**
+        1. Install ffmpeg: `brew install ffmpeg` (Mac) or download from ffmpeg.org (Windows)
+        2. Run the app locally using the launcher scripts
+        """)
+        st.markdown("---")
+        st.markdown("### 📥 Download for Local Use")
+        st.markdown("""
+        You can download the app and run it locally on your computer where ffmpeg is installed.
+        Check the README.md file in the repository for local setup instructions.
+        """)
     else:
         # Sidebar for video settings
         with st.sidebar:
