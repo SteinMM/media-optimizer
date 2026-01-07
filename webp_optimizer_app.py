@@ -84,6 +84,11 @@ def optimize_webp(input_path, output_path, quality=85, method=6):
 def optimize_video(input_path, output_path, crf=35, speed=4, fps=None):
     """Optimize WebM video."""
     try:
+        # Ensure output is .webm format
+        output_path = Path(output_path)
+        if output_path.suffix.lower() != '.webm':
+            output_path = output_path.with_suffix('.webm')
+        
         cmd = [
             'ffmpeg', '-i', str(input_path),
             '-c:v', 'libvpx-vp9',
@@ -97,6 +102,7 @@ def optimize_video(input_path, output_path, crf=35, speed=4, fps=None):
             '-threads', '0',
             '-c:a', 'libopus',
             '-b:a', '96k',
+            '-f', 'webm',  # Explicitly specify WebM format
             '-y',
             str(output_path)
         ]
@@ -110,7 +116,8 @@ def optimize_video(input_path, output_path, crf=35, speed=4, fps=None):
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return True, None
     except subprocess.CalledProcessError as e:
-        return False, e.stderr if e.stderr else str(e)
+        error_msg = e.stderr if e.stderr else str(e)
+        return False, error_msg
 
 def get_video_info(video_path):
     """Get video information."""
