@@ -340,7 +340,7 @@ with tab2:
             st.markdown("- Speed 4: Fast encoding")
             st.markdown("- Limit FPS: Reduces size significantly")
         
-        # File upload
+        # File upload (always show)
         uploaded_video = st.file_uploader(
             "Upload a video to optimize",
             type=['webm', 'mp4', 'mov'],
@@ -349,6 +349,10 @@ with tab2:
         )
         
         if uploaded_video is not None:
+            # Re-check ffmpeg availability (in case it was just installed)
+            if not check_ffmpeg():
+                st.error("❌ ffmpeg is not available. Please wait for installation to complete or use image optimization instead.")
+                st.stop()
             # Create temporary files
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_input = Path(temp_dir) / uploaded_video.name
