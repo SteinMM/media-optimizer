@@ -363,7 +363,9 @@ with tab2:
             # Create temporary files
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_input = Path(temp_dir) / uploaded_video.name
-                temp_output = Path(temp_dir) / f"optimized_{uploaded_video.name}"
+                # Ensure output is always .webm format
+                output_name = Path(uploaded_video.name).stem + '.webm'
+                temp_output = Path(temp_dir) / f"optimized_{output_name}"
                 
                 # Save uploaded file
                 with open(temp_input, 'wb') as f:
